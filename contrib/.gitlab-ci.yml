@@ -102,40 +102,6 @@ stages:
 #   - ninja -j 8 test
 #   dependencies: ["linux:arch-llvm:build"]
 
-
-#----------------#
-# Ubuntu Builder #
-#----------------#
-
-.ubuntu:
-  tags:
-    - linux
-  image:
-      name: uwsbel/packages:ubuntu
-  before_script:
-    # Defining configuration variables
-    - export LIB_DIR="lib"
-    - export IOMP5_DIR=""
-    # Obtain dependencies
-    - apt-get update; apt-get -y install unzip wget python3 python3-pip
-      git cmake ninja-build doxygen libvulkan-dev pkg-config libirrlicht-dev 
-      freeglut3-dev mpich libasio-dev libboost-dev libglfw3-dev libglm-dev 
-      libglew-dev libtinyxml2-dev swig python3-dev libhdf5-dev libnvidia-gl-530
-    - nvidia-smi
-    - wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | 
-      gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
-    - echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] 
-      https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list
-    - apt update
-    - apt -y install intel-basekit libxcb-randr0-dev libxcb-xtest0-dev libxcb-xinerama0-dev
-      libxcb-shape0-dev libxcb-xkb-dev xorg-dev
-    - ldconfig
-    # Initialize git repository
-    - cd $CI_PROJECT_DIR
-    - git submodule init
-    - git submodule update
-    - mkdir -p build
-
 linux:doxygen:deploy:
   tags:
   - linux
@@ -181,8 +147,40 @@ linux:doxygen:deploy:
     - if: '$CI_COMMIT_REF_NAME == "main"'
       when: always
 
-# Build uses custom ubuntu image committed from nvidia/cuda:12.1.1-devel-ubuntu22.04 with dependencies pre-downloaded
-linux:ubuntu22.04:build:
+#----------------#
+# Ubuntu Builder #
+#----------------#
+
+.ubuntu:
+  tags:
+    - linux
+  image:
+      name: uwsbel/packages:ubuntu
+  before_script:
+    # Defining configuration variables
+    - export LIB_DIR="lib"
+    - export IOMP5_DIR=""
+    # Obtain dependencies
+    - apt-get update; apt-get -y install unzip wget python3 python3-pip
+      git cmake ninja-build doxygen libvulkan-dev pkg-config libirrlicht-dev 
+      freeglut3-dev mpich libasio-dev libboost-dev libglfw3-dev libglm-dev 
+      libglew-dev libtinyxml2-dev swig python3-dev libhdf5-dev libnvidia-gl-530
+    - nvidia-smi
+    - wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | 
+      gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
+    - echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] 
+      https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list
+    - apt update
+    - apt -y install intel-basekit libxcb-randr0-dev libxcb-xtest0-dev libxcb-xinerama0-dev
+      libxcb-shape0-dev libxcb-xkb-dev xorg-dev
+    - ldconfig
+    # Initialize git repository
+    - cd $CI_PROJECT_DIR
+    - git submodule init
+    - git submodule update
+    - mkdir -p build
+
+linux:ubuntu22.04-gcc:build:
   extends: .ubuntu
   stage: build
   script:
@@ -193,22 +191,50 @@ linux:ubuntu22.04:build:
     - cmake -G "Ninja" -B $CI_PROJECT_DIR/build/ -S $CI_PROJECT_DIR --preset=linuxci
     # Making chrono
     - cd $CI_PROJECT_DIR/build
-    - ninja -j 8
+    - ninja
   artifacts:
     expire_in: 60m
     paths:
       - build/
 
-linux:ubuntu22.04:test:
+linux:ubuntu22.04-gcc:test:
   stage: test
-  needs: ["linux:ubuntu22.04:build"]
+  needs: ["linux:ubuntu22.04-gcc:build"]
   extends: .ubuntu
   script:
     - cd build
     - export OMP_NUM_THREADS=8
     - export CTEST_OUTPUT_ON_FAILURE=1
-    - ninja -j 8 test
-  dependencies: ["linux:ubuntu22.04:build"]
+    - ninja test
+  dependencies: ["linux:ubuntu22.04-gcc:build"]
+
+linux:ubuntu22.04-clang:build:
+  extends: .ubuntu
+  stage: build
+  script:
+    # Defining compiler variables
+    - export C_COMPILER="/usr/bin/clang"
+    - export CXX_COMPILER="/usr/bin/clang++"
+    # Building chrono
+    - cmake -G "Ninja" -B $CI_PROJECT_DIR/build/ -S $CI_PROJECT_DIR --preset=linuxci
+    # Making chrono
+    - cd $CI_PROJECT_DIR/build
+    - ninja
+  artifacts:
+    expire_in: 60m
+    paths:
+      - build/
+
+linux:ubuntu22.04-clang:test:
+  stage: test
+  needs: ["linux:ubuntu22.04-clang:build"]
+  extends: .ubuntu
+  script:
+    - cd build
+    - export OMP_NUM_THREADS=8
+    - export CTEST_OUTPUT_ON_FAILURE=1
+    - ninja test
+  dependencies: ["linux:ubuntu22.04-clang:build"]
 
 .ubuntu-deploy-base:
   tags:
