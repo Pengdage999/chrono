@@ -193,20 +193,23 @@ int main(int argc, char* argv[]) {
     double speed_end = std::stod(speed_es);
     yup = cli.GetAsType<bool>("yup");
 
-    std::string ride_data_file;
-    ride_data_file.assign(crg_road_file);
-    ride_data_file.erase(ride_data_file.end()-4,ride_data_file.end());
-    size_t pos_us = ride_data_file.find_last_of("_"); // find last underscore
-    std::string rmsvstr = ride_data_file.substr(pos_us+1);
+    std::string rideDataFileName;
+    rideDataFileName.assign(crg_road_file);
+    rideDataFileName.erase(rideDataFileName.end()-4,rideDataFileName.end());
+    size_t pos_us = rideDataFileName.find_last_of("_"); // find last underscore
+    std::string rmsvstr = rideDataFileName.substr(pos_us+1);
     rmsvstr.erase(rmsvstr.end()-2,rmsvstr.end()); // remove unit string "in"
     size_t pos_p = rmsvstr.find("p"); // place holder for decimal dot?
     if(pos_p != std::string::npos)
         rmsvstr[pos_p] = '.';
     double rmsValue = std::stod(rmsvstr);
-    GetLog() << "Data file: " << ride_data_file << "\n";
+    rideDataFileName.append(".dat");
+    GetLog() << "Data file: " << rideDataFileName << "\n";
     GetLog() << "Value string: " << rmsvstr << "\n";
     GetLog() << "RMS Value: " << rmsValue << " in\n";
-    
+    char cval[10];
+    char sval[10];
+    snprintf(cval,9,"%.1f",rmsValue);
     
     // ----------------
     // Output directory
@@ -228,14 +231,6 @@ int main(int argc, char* argv[]) {
     std::cout << "Vertical direction: " << ChWorldFrame::Vertical() << std::endl;
     std::cout << "Forward direction:  " << ChWorldFrame::Forward() << std::endl;
 
-    // ----------------------------
-    // Create the containing system
-    // ----------------------------
-
-    ChSystemSMC sys;
-    sys.Set_G_acc(-9.81 * ChWorldFrame::Vertical());
-    sys.SetSolverMaxIterations(150);
-    sys.SetMaxPenetrationRecoverySpeed(4.0);
 
     // ------------------
     // Create the terrain
@@ -249,12 +244,29 @@ int main(int argc, char* argv[]) {
     
     ChFunction_Recorder powRec;
     
-    std::string datafile = out_dir + "/test_gnuplot_data.dat";
-    ChStreamOutAsciiFile mdatafile(datafile.c_str());
+    std::string dataFileName = out_dir;
+    dataFileName.append("/plot_data_");
+    dataFileName.append(cval);
+    dataFileName.append("in.dat");
+    ChStreamOutAsciiFile mdatafile(dataFileName.c_str());
+
+    std::string plotFileName = out_dir;
+    plotFileName.append("/plot_");
+    plotFileName.append(cval);
+    plotFileName.append("in.gpl");
 
     bool power_limit_reached = 0;
     double speed = speed_start;
     while (speed <= speed_end) {
+        snprintf(sval,9,"%.1f",speed);
+        // ----------------------------
+        // Create the containing system
+        // ----------------------------
+
+        ChSystemSMC sys;
+        sys.Set_G_acc(-9.81 * ChWorldFrame::Vertical());
+        sys.SetSolverMaxIterations(150);
+        sys.SetMaxPenetrationRecoverySpeed(4.0);
         CRGTerrain terrain(&sys);
         terrain.UseMeshVisualization(useMesh);
         terrain.SetContactFrictionCoefficient(0.8f);
@@ -326,10 +338,6 @@ int main(int argc, char* argv[]) {
         // Create the visualization system
         // -------------------------------
 
-        char cval[10];
-        char sval[10];
-        snprintf(cval,9,"%.1f",rmsValue);
-        snprintf(sval,9,"%.1f",speed);
         std::string winTitle = "FED Alpha Ride Test (RMS = ";
         winTitle.append(cval);
         winTitle.append(" in) Speed = ");
@@ -428,16 +436,6 @@ int main(int argc, char* argv[]) {
         }
         speed += speed_inc;
     }  // while
-    
-    chrono::postprocess::ChGnuPlot mplot(out_dir + "/tmp_gnuplot_3.gpl");
-    mplot.SetTitle("FED Alpha Ride Test");
-    mplot.SetLabelX("Vehicle Speed (miles/hour)");
-    mplot.SetLabelY("Absorbed Power (W)");
-    std::string tstr = "RMS ";
-    tstr.append(rmsvstr);
-    tstr.append(" in");
-    mplot.Plot(datafile, 1, 2, tstr, " with linespoints");
-    mplot.Plot(datafile, 1, 3, "Absorbed Power Limit", " with lines");
 
     if(!power_limit_reached) {
         GetLog() << "Could not find Absorbed Power limit!\n";
@@ -448,5 +446,18 @@ int main(int argc, char* argv[]) {
         double speed_6W = powRec.Get_y(6.0);
         GetLog() << "Speed 6W = " << speed_6W << " miles/hour\n";
     }
+
+    chrono::postprocess::ChGnuPlot mplot(plotFileName);
+    char titleString[100];
+    snprintf(titleString,99,"FED Alpha Ride Test on %s inch roughness course. 6-Watt speed = %.2f miles/hour",rmsvstr.c_str(),powRec.Get_y(6.0));
+    mplot.SetTitle(titleString);
+    mplot.SetLabelX("Vehicle Speed (miles/hour)");
+    mplot.SetLabelY("Absorbed Power (W)");
+    std::string tstr = "RMS ";
+    tstr.append(rmsvstr);
+    tstr.append(" in");
+    mplot.Plot(dataFileName, 1, 2, tstr, " with linespoints");
+    mplot.Plot(dataFileName, 1, 3, "Absorbed Power Limit", " with lines");
+
     return 0;
 }
