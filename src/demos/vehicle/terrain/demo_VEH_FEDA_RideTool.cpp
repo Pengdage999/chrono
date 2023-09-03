@@ -70,8 +70,8 @@ bool useMesh = true;
 double target_speed = 12;
 
 // Simulation step size
-double step_size = 1e-3;
-double tire_step_size = 1e-3;
+double step_size = 5e-4;
+double tire_step_size = step_size;
 
 // Output frame images
 bool output_images = false;
@@ -105,7 +105,7 @@ class MyDriver {
                 auto driverPID =
                     chrono_types::make_shared<ChPathFollowerDriver>(vehicle, path, "my_path", target_speed);
                 driverPID->GetSteeringController().SetLookAheadDistance(5);
-                driverPID->GetSteeringController().SetGains(0.5, 0, 0);
+                driverPID->GetSteeringController().SetGains(0.5, 0.01, 0.001);
                 driverPID->GetSpeedController().SetGains(0.4, 0, 0);
 
                 m_driver = driverPID;
@@ -314,7 +314,7 @@ int main(int argc, char* argv[]) {
         my_feda.SetInitPosition(init_csys);
         my_feda.SetEngineType(EngineModelType::SIMPLE_MAP);
         my_feda.SetTransmissionType(TransmissionModelType::SIMPLE_MAP);
-        my_feda.SetDamperMode(FEDA::DamperMode::PASSIVE_LOW);  // use semiactive dampers
+        my_feda.SetDamperMode(FEDA::DamperMode::FSD);  // use semiactive dampers
         my_feda.SetRideHeight_ObstacleCrossing();              // high static height
         my_feda.Initialize();
 
@@ -374,10 +374,11 @@ int main(int argc, char* argv[]) {
 
         chrono::utils::ChISO2631_Vibration_SeatCushionLogger cushion(step_size);
 
+        ChVector<> seatPos = my_feda.GetChassis()->GetLocalDriverCoordsys().pos;
         while (vis->Run()) {
             double time = my_feda.GetSystem()->GetChTime();
             ChVector<> xpos = my_feda.GetVehicle().GetPos();
-            ChVector<> sacc = my_feda.GetVehicle().GetPointAcceleration(ChVector<>(-1.0, 1.0, 0.5));
+            ChVector<> sacc = my_feda.GetVehicle().GetPointAcceleration(seatPos);
             vel = my_feda.GetVehicle().GetSpeed();
             if (xpos.x() > 100.0) {
                 cushion.AddData(vel, sacc);
