@@ -118,7 +118,7 @@ class MyDriver {
                 auto driverStanley =
                     chrono_types::make_shared<ChPathFollowerDriver>(vehicle, path, "my_path", target_speed);
                 driverStanley->GetSteeringController().SetLookAheadDistance(5.0);
-                driverStanley->GetSteeringController().SetGains(0.5, 0.0, 0.0);
+                driverStanley->GetSteeringController().SetGains(0.05, 0.0, 0.0);
                 driverStanley->GetSpeedController().SetGains(0.4, 0, 0);
 
                 m_driver = driverStanley;
@@ -292,7 +292,7 @@ int main(int argc, char* argv[]) {
                                             ChFrame<>(init_csys.pos - 0.5 * ChWorldFrame::Vertical(), init_csys.rot));
 
         // Initial location and orientation from CRG terrain (create vehicle 0.5 m above road)
-        init_csys.pos += 0.5 * ChWorldFrame::Vertical() + ChVector<>(1, 0, 0);
+        init_csys.pos += 0.5 * ChWorldFrame::Vertical() + ChVector<>(80, 0, 0);
 
         path->write(out_dir + "/path.txt");
 
@@ -316,6 +316,7 @@ int main(int argc, char* argv[]) {
         my_feda.SetTransmissionType(TransmissionModelType::SIMPLE_MAP);
         my_feda.SetDamperMode(FEDA::DamperMode::FSD);  // use semiactive dampers
         my_feda.SetRideHeight_ObstacleCrossing();              // high static height
+        my_feda.SetInitFwdVel(target_speed);
         my_feda.Initialize();
 
         my_feda.SetChassisVisualizationType(VisualizationType::PRIMITIVES);
