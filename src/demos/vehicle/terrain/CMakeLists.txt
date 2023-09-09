@@ -33,7 +33,8 @@ if(HAVE_OPENCRG AND ENABLE_MODULE_VSG)
         demo_VEH_CRGTerrain_VSG
         demo_VEH_FEDA_Road
         demo_VEH_FEDA_Ride
-        demo_VEH_FEDA_RideTool
+        demo_VEH_FEDA_KrcRideTool
+        demo_VEH_FEDA_IsoRideTool
     )
 endif()
 
