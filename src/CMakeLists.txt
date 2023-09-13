@@ -463,6 +463,7 @@ elseif(MSVC)
     add_compile_options(/wd26451)  # arithmetic overflow
     add_compile_options(/wd26495)  # uninitialized member variable
     add_compile_options(/wd26812)  # use of unscoped enums
+    add_compile_options(/wd4819)
 else()
     message(STATUS "Warning level set to -Wall")
     add_compile_options(-Wint-in-bool-context)

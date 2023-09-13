@@ -44,7 +44,7 @@ using namespace chrono;
 
 // =============================================================================
 
-ChVisualSystem::Type vis_type = ChVisualSystem::Type::VSG;
+ChVisualSystem::Type vis_type = ChVisualSystem::Type::IRRLICHT;
 
 double rest_length = 1.5;
 double spring_coef = 50;
