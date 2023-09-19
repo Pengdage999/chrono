@@ -41,7 +41,7 @@ using namespace chrono;
 
 ChVisualSystem::Type vis_type = ChVisualSystem::Type::VSG;
 
-collision::ChCollisionSystemType collision_type = collision::ChCollisionSystemType::BULLET;
+collision::ChCollisionSystemType collision_type = collision::ChCollisionSystemType::CHRONO;
 
 void AddFallingItems(ChSystemNSC& sys) {
     // Shared contact materials for falling objects
